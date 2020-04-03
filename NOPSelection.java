@@ -15,7 +15,7 @@
  */
 //Convenience script to quickly nop the code or data at the current cursor selection.
 //@category Memory
-//@keybinding
+//@keybinding ctrl shift n 
 //@menupath 
 //@toolbar 
 //
