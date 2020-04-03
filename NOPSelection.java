@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-// Convenience script to quickly nop the code or data at the current cursor selection.
+// Convenience script to quickly nop the instructions at the current selection.
 // @category Memory
 // @keybinding ctrl shift n
 // @menupath
@@ -43,7 +43,7 @@ public class NOPSelection extends GhidraScript {
         startAddr = activeAddr = currentSelection.getMinAddress();
         endAddr = currentSelection.getMaxAddress();
 
-        // Create a mapping between address and instructions that need to be disassembled after
+        // Create a mapping between address and instruction(s) that need to be re-disassembled after
         // the NOP replacement has taken place
         AddressSet addrSet = new AddressSet(activeAddr, endAddr);
         CodeUnitIterator iter = currentProgram.getListing().getCodeUnits(addrSet, true);
@@ -72,11 +72,10 @@ public class NOPSelection extends GhidraScript {
 
         // Fill the array with the desired amount of NOPs.
         int length = (int) currentSelection.getFirstRange().getLength();
-        print(" NOPSelection.java> Number of bytes to be overwritten by NOPs: " + length + "\n");
+        print("NOPSelection.java> Number of bytes to be overwritten by NOPs: " + length + "\n");
         NOPbytes = new byte[length];
 
         for (int i = 0; i < length; i++) {
-            // needs casting to byte due to weird byte array behaviour of java.
             NOPbytes[i] = (byte) 0x90;
         }
 
