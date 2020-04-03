@@ -4,100 +4,93 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-//Convenience script to quickly nop the code or data at the current cursor selection.
-//@category Memory
-//@keybinding ctrl shift n 
-//@menupath 
-//@toolbar 
+// Convenience script to quickly nop the code or data at the current cursor selection.
+// @category Memory
+// @keybinding ctrl shift n
+// @menupath
+// @toolbar
 //
-
-import java.util.Map.Entry;
-import java.util.TreeMap;
 
 import ghidra.app.cmd.disassemble.DisassembleCommand;
 import ghidra.app.script.GhidraScript;
 import ghidra.program.model.address.*;
-import ghidra.program.model.data.DataType;
 import ghidra.program.model.listing.*;
 import ghidra.program.model.mem.MemoryAccessException;
-import ghidra.program.model.util.CodeUnitInsertionException;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 
 public class NOPSelection extends GhidraScript {
 
-	@Override
-	public void run() throws Exception {
+    @Override
+    public void run() throws Exception {
 
-		byte[] NOPbytes = null;
+        byte[] NOPbytes = null;
 
-		Address endAddr = null;
-		Address activeAddr = null;
-		Address startAddr = null;
-		Address codeEnd = null;
+        Address endAddr = null;
+        Address activeAddr = null;
+        Address startAddr = null;
+        Address codeEnd = null;
 
         startAddr = activeAddr = currentSelection.getMinAddress();
         endAddr = currentSelection.getMaxAddress();
-        
-        //Create a mapping between address and instructions that need to be disassembled after
-        //the NOP replacement has taken place
+
+        // Create a mapping between address and instructions that need to be disassembled after
+        // the NOP replacement has taken place
         AddressSet addrSet = new AddressSet(activeAddr, endAddr);
-		CodeUnitIterator iter = currentProgram.getListing().getCodeUnits(addrSet, true);
+        CodeUnitIterator iter = currentProgram.getListing().getCodeUnits(addrSet, true);
 
-		AddressSet codeAddrSet = null;
-		TreeMap<Address, AddressSet> addrToCodeMap = new TreeMap<>();
-        
-		while (iter.hasNext()) {
-			activeAddr = iter.next().getAddress();
+        AddressSet codeAddrSet = null;
+        TreeMap<Address, AddressSet> addrToCodeMap = new TreeMap<>();
 
-	    	Instruction code = getInstructionContaining(activeAddr);
-			if (code != null) {
-				codeEnd = activeAddr.add(code.getLength() - 1);
-				codeAddrSet = new AddressSet(activeAddr, codeEnd);
-				addrToCodeMap.put(activeAddr, codeAddrSet);
-				continue;
-			}
+        while (iter.hasNext()) {
+            activeAddr = iter.next().getAddress();
 
-			if (activeAddr.equals(endAddr)) {
-				break;
-			}
-		}
+            Instruction code = getInstructionContaining(activeAddr);
+            if (code != null) {
+                codeEnd = activeAddr.add(code.getLength() - 1);
+                codeAddrSet = new AddressSet(activeAddr, codeEnd);
+                addrToCodeMap.put(activeAddr, codeAddrSet);
+                continue;
+            }
 
-		//Removes original bytes 
-		clearListing(startAddr, endAddr);
-		
-		//Fill the array with the desired amount of NOPs.
+            if (activeAddr.equals(endAddr)) {
+                break;
+            }
+        }
+
+        // Removes original bytes
+        clearListing(startAddr, endAddr);
+
+        // Fill the array with the desired amount of NOPs.
         int length = (int) currentSelection.getFirstRange().getLength();
-        print(" NOPSelection.java> Number of bytes to be overwritten by NOPs: " + length + "\n");		
-		NOPbytes = new byte[length];
+        print(" NOPSelection.java> Number of bytes to be overwritten by NOPs: " + length + "\n");
+        NOPbytes = new byte[length];
 
-		for(int i = 0; i < length; i++){
-			//needs casting to byte due to weird byte array behaviour of java.
-			NOPbytes[i] = (byte) 0x90;
-		}
+        for (int i = 0; i < length; i++) {
+            // needs casting to byte due to weird byte array behaviour of java.
+            NOPbytes[i] = (byte) 0x90;
+        }
 
-		try {
-			setBytes(startAddr, NOPbytes);
-		}
-		catch (MemoryAccessException e) {
-			popup("Bytes cannot be set on uninitialized memory");
-			return;
-		}
-   
-		//Perform dissasembly on the newly created instructions/bytes.
-		for (Entry<Address, AddressSet> entry : addrToCodeMap.entrySet()) {
-			DisassembleCommand cmd = new DisassembleCommand(entry.getKey(), entry.getValue(), true);
-			cmd.applyTo(currentProgram, monitor);
-		}
-	}
+        try {
+            setBytes(startAddr, NOPbytes);
+        } catch (MemoryAccessException e) {
+            popup("Bytes cannot be set on uninitialized memory");
+            return;
+        }
 
-
+        // Perform dissasembly on the newly created instructions/bytes.
+        for (Entry<Address, AddressSet> entry : addrToCodeMap.entrySet()) {
+            DisassembleCommand cmd = new DisassembleCommand(entry.getKey(), entry.getValue(), true);
+            cmd.applyTo(currentProgram, monitor);
+        }
+    }
 }
-
